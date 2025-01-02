@@ -22,6 +22,7 @@ def get_stock_price(symbol):
 
 # I am currently using Finnhub which provides up to 60 reqs per min
 # This has no minutely, hourly, daily or monthly limit.
+# you could also use webhook which might be somthing useful to look into
 
 # ALPHA VANTAGE - NOTE: DO NOT USE BETTER OPTIONS AVAILABLE
 # it should be noted this key is free (OQTQ7NGARONXP2MD) and you can get your own at https://www.alphavantage.co/support/#api-key
