@@ -24,9 +24,9 @@ const StockForm = () => {
 
         try{
             const response = await axios.post('http://localhost:5000/set_alert', {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({symbol,price, email})
+                symbol, 
+                price, 
+                email,
             });
 
             if (response.status === 200) {
