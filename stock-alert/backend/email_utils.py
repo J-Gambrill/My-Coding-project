@@ -16,8 +16,10 @@ def send_email(recipient, symbol, price):
     yag = yagmail.SMTP(sender_email, sender_password)
 
     subject = f"Stock Alert: {symbol} has hit your target price!" #f just allows you to insert data
-    content = f"The stock {symbol} has reached your target price. Current Price: £{price}"
-    content = "Thank you for using this service." 
+    content = f"The stock {symbol} has reached your target price. Current Price: £{price}.\nThank you for using this service."
 
-    yag.send(to=recipient, subject=subject, contents=content)
-    print(f"Email sent to {recipient} for {symbol}.")
+    try:
+        yag.send(to=recipient, subject=subject, contents=content)
+        print(f"Email sent to {recipient} for {symbol}.")
+    except Exception as e:
+        print(f'Failed to send email to {recipient}: {e}')

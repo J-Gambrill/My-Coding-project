@@ -12,7 +12,8 @@ const StockForm = () => {
         e.preventDefault();
          
         // Validation logic
-        if (!symbol.match(/^[A-Za-z]+$/)) {
+        const trimmedSymbol = symbol.trim();
+        if (!trimmedSymbol.match(/^[A-Za-z]+$/)) {
             setMessage('Invalid stock symbol! Only letters are allowed.');
             return;
         }
@@ -22,26 +23,24 @@ const StockForm = () => {
             return;
         }
 
-        try{
+        try {
+            // Make API request
             const response = await axios.post('http://localhost:5000/set_alert', {
-                symbol, 
-                price, 
+                symbol: trimmedSymbol, // Use trimmed symbol
+                price,
                 email,
             });
 
-            if (response.status === 200) {
-                setMessage('Alert set successfully!')
-                // Resets form fields
-                setSymbol('');
-                setPrice('');
-                setEmail('');
-            } else {
-                setMessage('Failed to set alert. Please try again.')
-            }
+            // Success response
+            setMessage(response.data.message || 'Alert set successfully!');
+            setSymbol('');
+            setPrice('');
+            setEmail('');
         } catch (error) {
+            // Handle error response
             console.error('Error:', error);
-            setMessage('An error occured. Please try again. Should this error persist please contact jgambrill@capulaglobal.com')
-        } 
+            setMessage(error.response?.data?.message || 'An error occurred. Please try again.');
+        }
     };
 
     return (
