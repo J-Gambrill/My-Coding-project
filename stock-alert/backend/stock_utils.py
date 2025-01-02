@@ -1,8 +1,9 @@
 # this will store my api logic
 
 import requests
+import os
 
-FINNHUB_API_KEY = 'ctrc3ahr01qhb16mhni0ctrc3ahr01qhb16mhnig'
+FINNHUB_API_KEY = os.getenv('FINNHUB_API_KEY')
 
 def get_stock_price(symbol):
     try:

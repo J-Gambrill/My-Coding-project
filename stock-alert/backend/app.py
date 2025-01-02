@@ -40,12 +40,12 @@ def set_alert():
         new_alert = Alert(symbol=symbol, price=price, email=email)
         session.add(new_alert)
         session.commit()
-        session.close
+        session.close()
         
         print(f"Received alert: Symbol={symbol}, Price={price}, Email={email}")
         return jsonify({'message': 'Alert set successfully!'}), 200 
     except Exception as e:
-        print("Error processing request:", traceback.format_exc)
+        print("Error processing request:", traceback.format_exc())
         return jsonify({'message': 'An internal error occurred.'}), 500
     
     

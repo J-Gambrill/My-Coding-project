@@ -8,7 +8,7 @@ Session = sessionmaker(bind=engine)
 session = Session()
 
 def get_session():
-    return session
+    return session()
 
 class Alert(Base):
     __tablename__ = 'alerts'
