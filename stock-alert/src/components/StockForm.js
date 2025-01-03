@@ -62,7 +62,7 @@ const StockForm = () => {
            
             <div className='mb-3'>
                 <label htmlFor="price">Target Price:</label>
-                <span className="input-group-text">£</span>
+                <span className="input-group-text">$</span>
                 <input
                     type="number"
                     className="form-control"
@@ -73,7 +73,7 @@ const StockForm = () => {
                 />
             </div>
             <div className='mb-3'> 
-                <label htmlFor="email">Email (optional):</label>
+                <label htmlFor="email">Email:</label>
                 <input
                     type="email"
                     className="form-control"

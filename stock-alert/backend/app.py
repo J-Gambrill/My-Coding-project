@@ -1,3 +1,5 @@
+# !!!!!IMPORTANT!!!!! - currently does less than or equal to alert price so is more useful for 
+
 #this represents a basic flask server
 from flask import Flask, request, jsonify
 from flask_cors import CORS
@@ -60,6 +62,8 @@ def get_price(symbol):
     except Exception as e:
         print("Error fetching stock price:", traceback.format_exc())
         return jsonify({'message': 'An error occurred while fetching the price.'}), 500
+    
+
 
 
 # Initialise a background scheduler (apscheduler)
@@ -69,28 +73,54 @@ scheduler.start()
 
 def check_alerts():
     try:
+        print('Schedular running: checking alerts..')
         session = Session()  # Start a database session
         alerts = session.query(Alert).all()
 
         for alert in alerts:
-            current_price = get_stock_price(alert.symbol)
-            if current_price and current_price <= alert.price:
-                print(f"Alert triggered for {alert.symbol}! Current price: {current_price}")
+            try:
+                current_price = get_stock_price(alert.symbol)
+                print(f"Checking alert for {alert.symbol}. Current price: {current_price}, Alert price: {alert.price}")
+            
+                if current_price is None:
+                    print(f'Failed to fetch price for {alert.symbol}. Skipping.')
+                    continue
+
+                current_price = float(current_price)
+                alert_price = float(alert.price) # after here alert_price should be used instaed of alert.price
+
+                if current_price <= alert_price:
+                    print(f'Triggering alert for {alert.symbol}. Current Price: {current_price}, Alert Price: {alert_price}')
 
                 # Sends a notification
                 if alert.email:
-                    send_email(alert.email, alert.symbol, current_price)
+                    try:
+                        print(f'Sending email to {alert.email} for {alert.symbol}')
+                        print(f"Debug: Sending email with current_price = £{current_price}")
+                        send_email(alert.email, alert.symbol, current_price)
+                        print('Email sent successfully')
+                    
+                    except Exception as email_error:
+                        print(f"Failed to send email for {alert.symbol}: {email_error}")
 
                 # Removes the alert after notification sent
-                session.delete(alert)
+                try:
+                        session.delete(alert)
+                        print(f"Alert for {alert.symbol} removed successfully.")
+                except Exception as delete_error:
+                        print(f"Error removing alert for {alert.symbol}: {delete_error}")
+
+            except Exception as alert_error:
+                print(f'Error prossesing alert for {alert.symbol}: Error: {alert_error}')
 
         session.commit()
         session.close()
+        print('Finished Checking alerts')
     except Exception as e:
         print("Error in check_alerts:", traceback.format_exc())
 
 # this line should ensure the check runs every 5 minutes -->
-scheduler.add_job(check_alerts, 'interval', minutes=5) # note with 25 reqs per day change your mins to 57.6 for a full day of checks
+scheduler.add_job(check_alerts, 'interval', minutes=1) # note with 25 reqs per day change your mins to 57.6 for a full day of checks
 
 if __name__ == '__main__':
     app.run(debug=True)

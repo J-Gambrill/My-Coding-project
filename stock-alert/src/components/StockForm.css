@@ -39,3 +39,16 @@
     max-width: 22rem;
     font-weight: 600;
 }
+
+.warning{
+    display: flex;
+    justify-content: center;
+    border-style: solid;
+    border-radius: 30px;
+    border-width: 2px;
+    border-color: #e33310;
+    max-width: 40rem;
+    padding: 0.1rem;
+    margin: 0.5rem auto;
+
+}

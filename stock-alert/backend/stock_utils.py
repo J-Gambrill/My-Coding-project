@@ -3,10 +3,13 @@
 import requests
 import os
 
+
 FINNHUB_API_KEY = os.getenv('FINNHUB_API_KEY')
 
 def get_stock_price(symbol):
     try:
+        print(f"Finnhub API Key: {FINNHUB_API_KEY}")
+        print(f"symbol: {symbol}")
         url = f'https://finnhub.io/api/v1/quote?symbol={symbol}&token={FINNHUB_API_KEY}'
         response = requests.get(url)
         if response.status_code != 200:
@@ -14,8 +17,11 @@ def get_stock_price(symbol):
             return None
         
         data = response.json()
-        # Finnhub returns current price under 'c'
-        return data.get('c', None)  # 'c' is the current price
+        current_price = data.get('c', None)  # 'c' is the current price
+        if current_price is not None:
+            current_price = float(current_price)
+        print(f'Current Price: {current_price}')
+        return current_price
     except Exception as e:
         print(f"Error in get_stock_price: {e}")
         return None

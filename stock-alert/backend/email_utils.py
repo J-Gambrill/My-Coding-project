@@ -6,9 +6,11 @@
 import yagmail
 import os
 
+
+
 def send_email(recipient, symbol, price):
-    sender_email = os.environ.get('EMAIL_USER') # this should use my GMAIL
-    sender_password = os.environ.get('EMAIL_PASS')
+    sender_email = os.getenv('EMAIL_USER')
+    sender_password = os.getenv('EMAIL_PASS')
 
     if not sender_email or not sender_password:
         raise ValueError("Email credentials are not set in environment variables")
