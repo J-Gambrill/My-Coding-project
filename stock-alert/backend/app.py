@@ -1,4 +1,4 @@
-# !!!!!IMPORTANT!!!!! - currently does less than or equal to alert price so is more useful for 
+
 
 #this represents a basic flask server
 from flask import Flask, request, jsonify
@@ -31,20 +31,36 @@ def set_alert():
         print("Request data:", data)
         
         symbol = data.get('symbol')
-        price = data.get('price')
+        high_price = data.get('high_price')
+        low_price = data.get('low_price')
         email = data.get('email')
 
-        if not symbol or not price:
-            return jsonify({'message': 'Invalid data'}), 400
+        if not symbol:
+            return jsonify({'message': 'Invalid data: Stock symbol required'}), 400
+        if not high_price and not low_price:
+            return jsonify({'message': 'Invalid data: Please provide at least one target price.'}), 400
         
-        # add new alert to db
+        try:
+            high_price = float(high_price) if high_price else None
+            low_price = float(low_price) if low_price else None
+        except ValueError:
+            return jsonify({'message': 'Prices must be numeric'})
+        
+         # add new alert to db
         session = Session()
-        new_alert = Alert(symbol=symbol, price=price, email=email)
-        session.add(new_alert)
+       
+        if high_price is not None:
+            high_alert = Alert(symbol=symbol, price=float(high_price), email=email, price_type='high')
+            session.add(high_alert)
+
+        if low_price is not None:
+            low_alert = Alert(symbol=symbol, price=float(low_price), email=email, price_type='low')
+            session.add(low_alert)
+
         session.commit()
         session.close()
         
-        print(f"Received alert: Symbol={symbol}, Price={price}, Email={email}")
+        print(f"Received alert: Symbol={symbol}, High Price={high_price}, Low Price={low_price} Email={email}")
         return jsonify({'message': 'Alert set successfully!'}), 200 
     except Exception as e:
         print("Error processing request:", traceback.format_exc())
@@ -55,9 +71,9 @@ def set_alert():
 @app.route('/get_price/<symbol>', methods=['GET'])
 def get_price(symbol):
     try:
-        price = get_stock_price(symbol)
-        if price:
-            return jsonify({'symbol': symbol, 'price': price}), 200
+        stock_price = get_stock_price(symbol)
+        if stock_price:
+            return jsonify({'symbol': symbol, 'price': stock_price}), 200
         return jsonify({'message': 'Stock price not found'}), 404
     except Exception as e:
         print("Error fetching stock price:", traceback.format_exc())
@@ -80,8 +96,9 @@ def check_alerts():
         for alert in alerts:
             try:
                 current_price = get_stock_price(alert.symbol)
-                print(f"Checking alert for {alert.symbol}. Current price: {current_price}, Alert price: {alert.price}")
-            
+                print(f"Checking alert for {alert.symbol}. Current price: {current_price}, Alert price: {alert.price}, Price type = {alert.price_type}")
+
+
                 if current_price is None:
                     print(f'Failed to fetch price for {alert.symbol}. Skipping.')
                     continue
@@ -89,26 +106,28 @@ def check_alerts():
                 current_price = float(current_price)
                 alert_price = float(alert.price) # after here alert_price should be used instaed of alert.price
 
-                if current_price <= alert_price:
-                    print(f'Triggering alert for {alert.symbol}. Current Price: {current_price}, Alert Price: {alert_price}')
-
-                # Sends a notification
-                if alert.email:
-                    try:
-                        print(f'Sending email to {alert.email} for {alert.symbol}')
-                        print(f"Debug: Sending email with current_price = £{current_price}")
-                        send_email(alert.email, alert.symbol, current_price)
+             # --- Only send email if the condition is true ---
+                if alert.price_type == 'low' and current_price <= alert_price:
+                    print(f"Triggering LOW alert for {alert.symbol} "
+                          f"(current: {current_price}, alert: {alert_price})")
+                    if alert.email:
+                        send_email(alert.email, alert.symbol, current_price, alert.price_type, alert.price)
                         print('Email sent successfully')
                     
-                    except Exception as email_error:
-                        print(f"Failed to send email for {alert.symbol}: {email_error}")
+                    session.delete(alert)  # remove it after sending
+                    print(f"Alert for {alert.symbol} removed successfully.")
 
-                # Removes the alert after notification sent
-                try:
-                        session.delete(alert)
-                        print(f"Alert for {alert.symbol} removed successfully.")
-                except Exception as delete_error:
-                        print(f"Error removing alert for {alert.symbol}: {delete_error}")
+                elif alert.price_type == 'high' and current_price >= alert_price:
+                    print(f"Triggering HIGH alert for {alert.symbol} "
+                          f"(current: {current_price}, alert: {alert_price})")
+                    if alert.email:
+                        send_email(alert.email, alert.symbol, current_price, alert.price_type, alert.price)
+                        print('Email sent successfully')
+                    
+                    session.delete(alert)
+                    print(f"Alert for {alert.symbol} removed successfully.")
+
+                # If neither condition is met, it does nothing – the alert remains in the DB until it eventually triggers or is manually removed.
 
             except Exception as alert_error:
                 print(f'Error prossesing alert for {alert.symbol}: Error: {alert_error}')

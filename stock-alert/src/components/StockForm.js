@@ -4,7 +4,8 @@ import axios from 'axios'; // axios is much simpler than fetch and so i have dev
 
 const StockForm = () => {
     const [symbol, setSymbol] = useState('');
-    const [price, setPrice] = useState('');
+    const [highPrice, setHighPrice] = useState('');
+    const [lowPrice, setLowPrice] = useState('');
     const [email, setEmail] = useState('');
     const [message, setMessage] = useState(''); //without this the error message will not work
 
@@ -18,8 +19,20 @@ const StockForm = () => {
             return;
         }
 
-        if (price <= 0) {
-            setMessage('Target price must be greater than 0.');
+        if (!highPrice && !lowPrice) {
+            setMessage('Please provide at least one price alert (high or low).');
+            return;
+        }
+
+        // Checks if highPrice is provided and validates it
+        if (highPrice && (isNaN(highPrice) || parseFloat(highPrice) <= 0)) {
+            setMessage('High target price must be a number greater than 0.');
+            return;
+        }
+
+        // Checks if lowPrice is provided and validates it
+        if (lowPrice && (isNaN(lowPrice) || parseFloat(lowPrice) < 0)) {
+            setMessage('Low target price must be a number greater than or equal to 0.');
             return;
         }
 
@@ -27,14 +40,16 @@ const StockForm = () => {
             // Make API request
             const response = await axios.post('http://localhost:5000/set_alert', {
                 symbol: trimmedSymbol, // Use trimmed symbol
-                price,
+                high_price: highPrice || null,
+                low_price: lowPrice || null,
                 email,
             });
 
             // Success response
             setMessage(response.data.message || 'Alert set successfully!');
             setSymbol('');
-            setPrice('');
+            setHighPrice('');
+            setLowPrice('');
             setEmail('');
         } catch (error) {
             // Handle error response
@@ -61,17 +76,32 @@ const StockForm = () => {
             </div>
            
             <div className='mb-3'>
-                <label htmlFor="price">Target Price:</label>
+                <label htmlFor="highPrice">High Target Price:</label>
                 <span className="input-group-text">$</span>
                 <input
                     type="number"
                     className="form-control"
-                    id="price"
-                    value={price}
-                    onChange={(e) => setPrice(e.target.value)}
-                    required
+                    id="highPrice"
+                    value={highPrice}
+                    onChange={(e) => setHighPrice(e.target.value)}
+                    
                 />
             </div>
+
+ 
+            <div className='mb-3'>
+                <label htmlFor="highPrice">Low Target Price:</label>
+                <span className="input-group-text">$</span>
+                <input
+                    type="number"
+                    className="form-control"
+                    id="lowPrice"
+                    value={lowPrice}
+                    onChange={(e) => setLowPrice(e.target.value)}
+                    
+                />
+            </div>
+
             <div className='mb-3'> 
                 <label htmlFor="email">Email:</label>
                 <input

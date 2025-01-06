@@ -1,4 +1,4 @@
-from sqlalchemy import create_engine, Column, Integer, String, Float
+from sqlalchemy import create_engine, Column, Integer, String, Float, UniqueConstraint
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 
@@ -15,6 +15,12 @@ class Alert(Base):
     id = Column(Integer, primary_key=True)
     symbol = Column(String, nullable=False)
     price = Column(Float, nullable=False)
-    email = Column(String)
+    price_type = Column(String, nullable=False)
+    email = Column(String, nullable=False)
+
+
+    __table_args__ = (
+        UniqueConstraint('symbol', 'price_type','price' , 'email', name='uix_symbol_price_type_email'),
+    )
 
 Base.metadata.create_all(engine)

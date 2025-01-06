@@ -8,7 +8,14 @@ import os
 
 
 
-def send_email(recipient, symbol, price):
+def send_email(
+        recipient, # alert.email
+        symbol, # alert.symbol
+        stock_price, # current_price 
+        price_type, # 'low' or 'high'
+        alert_price # alert.price
+    ):
+
     sender_email = os.getenv('EMAIL_USER')
     sender_password = os.getenv('EMAIL_PASS')
 
@@ -17,8 +24,12 @@ def send_email(recipient, symbol, price):
     
     yag = yagmail.SMTP(sender_email, sender_password)
 
-    subject = f"Stock Alert: {symbol} has hit your target price!" #f just allows you to insert data
-    content = f"The stock {symbol} has reached your target price. Current Price: £{price}.\nThank you for using this service."
+    subject = f"Stock Alert: {symbol} has hit your {price_type} target price!" #f just allows you to insert data
+
+    if price_type == "high":
+        content = f"The stock {symbol} has risen to or above your target price of ${alert_price}. The stock price is currently ${stock_price}\nThank you for using this service."
+    else:
+        content = f"The stock {symbol} has fallen to or below your target price of ${alert_price}. The stock price is currently ${stock_price}\nThank you for using this service."
 
     try:
         yag.send(to=recipient, subject=subject, contents=content)
