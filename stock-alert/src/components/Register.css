@@ -1,0 +1,38 @@
+.header {
+    display: flex;
+    justify-content: center;
+    margin: 1rem;
+}
+
+.mt-4 {
+    display: flex;
+    justify-content: center;
+    flex-direction: column;
+    max-width: 30rem !important;
+    margin: 1rem auto; /* This should center the form */
+    padding: 1rem;
+    border: solid;
+    border-width: 0.2rem;
+    border-color: black;
+    border-radius: 30px;
+}
+
+.Register-H{
+    display: flex;
+    margin: 0 auto 1rem;
+    max-width: 30rem;
+}
+
+.mb-3{
+    display: flex;
+    flex-direction: column;
+    max-width: 30rem;
+    margin: 0 auto;
+}
+
+.btn-primary{
+    display: flex !important;
+    justify-content: center;
+    margin: 0 auto;
+
+}

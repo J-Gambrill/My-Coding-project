@@ -115,6 +115,7 @@ const StockForm = () => {
             <button type="submit" className="btn btn-primary" >Set Alert</button>
             {message && <p className="alert alert-info">{message}</p>}
         </form>
+        
     );
 };
 

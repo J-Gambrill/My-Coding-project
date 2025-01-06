@@ -10,6 +10,7 @@ session = Session()
 def get_session():
     return session()
 
+
 class Alert(Base):
     __tablename__ = 'alerts'
     id = Column(Integer, primary_key=True)
