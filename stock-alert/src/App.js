@@ -2,12 +2,17 @@ import React, { useState } from 'react';
 import StockForm from './components/StockForm';
 import Login from './components/Login';
 import Register from './components/Register';
+import AlertTable from './components/AlertTable';
+import HistoryPage from './components/HistoryPage';
 import './App.css';
 
 
 const App = () => {
   const [authenticated, setAuthenticated] = useState(false);
   const [showLogin, setShowLogin] = useState(true);
+  const [token, setToken] = useState('');
+  const [showHistory, setShowHistory] = useState(false);
+
 
   const handleSwitchToLogin = () => {
     setShowLogin(true);
@@ -16,6 +21,11 @@ const App = () => {
   const handleSwitchToRegister = () => {
     setShowLogin(false);
   };
+
+  const handleLoginSuccess = (recievedToken) => {
+    setToken(recievedToken)
+    setAuthenticated(true)
+  }
 
   return (
     <div>
@@ -56,17 +66,31 @@ const App = () => {
             </>
           )}
         </div>
-      ) : (
-        <>
-          <StockForm />
-          <p className="warning">
-            Please be aware that this service only offers access to the American
-            stock exchanges.
-          </p>
-        </>
-      )}
-    </div>
-  );
-};
-
-export default App;
+        ) : (
+          // Authenticated
+          <>
+            {showHistory ? (
+              // Show History Page
+              <>
+                <HistoryPage token={token} />
+                <button onClick={() => setShowHistory(false)}>Back</button>
+              </>
+            ) : (
+              // Show Alerts Page
+              <>
+                <button onClick={() => setShowHistory(true)}>History</button>
+                <StockForm token={token} />
+                <p className="warning">
+                  Please be aware that this service only offers access to the American
+                  stock exchanges.
+                </p>
+                <AlertTable token={token} />
+              </>
+            )}
+          </>
+        )}
+      </div>
+    );
+  };
+  
+  export default App;

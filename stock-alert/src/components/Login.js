@@ -1,29 +1,54 @@
+//I am using AuthContext to import the token from login.This allows data to be shared across components 
+// without having to pass it explicitly through props at every level. It alsomost acts as a store for the whole app to just draw it from.
+
+
 import React, { useState } from 'react'
 import './Login.css';
 import axios from 'axios';
 import 'bootstrap/dist/css/bootstrap.min.css';
+import { AuthContext } from '../AuthContext';
 
 const Login = ({setAuthenticated}) => {
     const [username, setUsername] = useState('')
-    const [password, setpassword] = useState('')
+    const [password, setPassword] = useState('')
     const [error, setError] = useState(null)
+
+    const onLoginSuccess = (token) => {
+        localStorage.setItem('access_token', token);
+        setAuthenticated(true);
+        console.log('Login successful');
+        console.log({token})
+    };
+    
 
     const handleLogin = async (e) => {
         e.preventDefault();
         setError(null);
-
+    
         try {
             const response = await axios.post('http://localhost:5000/Login', {
                 username, 
                 password,
             });
-
-            localStorage.setItem('token', response.data.access_token)
-            setAuthenticated(true)
+    
+            // Check the response status
+            if (response.status !== 200) throw new Error('Login Failed');
+    
+            const {access_token} = response.data; // Access JSON data directly
+    
+            if (access_token) {
+                onLoginSuccess(access_token);
+            } else {
+                throw new Error('No token returned');
+            }
+    
         } catch (err) {
-            setError(err.response?.data?.error || 'An error ocurred.')
+            console.error(err);
+            setError('Invalid credentials');
+            alert('Invalid credentials');
         }
-    }
+    };
+    
 
     return (
         <div className="container mt-4">
@@ -48,7 +73,7 @@ const Login = ({setAuthenticated}) => {
                         className='form-control'
                         placeholder='Enter your password'
                         value={password}
-                        onChange={(e) => setpassword(e.target.value)}
+                        onChange={(e) => setPassword(e.target.value)}
                         required
                     />
                 </div>
