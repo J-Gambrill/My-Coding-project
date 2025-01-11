@@ -5,6 +5,7 @@
 # do NOT use '' 
 import yagmail
 import os
+import logging
 
 
 
@@ -33,6 +34,6 @@ def send_email(
 
     try:
         yag.send(to=recipient, subject=subject, contents=content)
-        print(f"Email sent to {recipient} for {symbol}.")
+        logging.info(f"Email sent to {recipient} for {symbol}.")
     except Exception as e:
-        print(f'Failed to send email to {recipient}: {e}')
+        logging.error(f'Failed to send email to {recipient}: {e}')

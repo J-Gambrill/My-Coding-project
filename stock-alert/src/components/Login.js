@@ -2,25 +2,19 @@
 // without having to pass it explicitly through props at every level. It alsomost acts as a store for the whole app to just draw it from.
 
 
-import React, { useState } from 'react'
+import React, { useContext, useState } from 'react'
 import './Login.css';
 import axios from 'axios';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import { AuthContext } from '../AuthContext';
 
-const Login = ({setAuthenticated}) => {
+const Login = () => {
     const [username, setUsername] = useState('')
     const [password, setPassword] = useState('')
     const [error, setError] = useState(null)
 
-    const onLoginSuccess = (token) => {
-        localStorage.setItem('access_token', token);
-        setAuthenticated(true);
-        console.log('Login successful');
-        console.log({token})
-    };
+    const { setToken, setAuthenticated } = useContext(AuthContext)
     
-
     const handleLogin = async (e) => {
         e.preventDefault();
         setError(null);
@@ -32,20 +26,25 @@ const Login = ({setAuthenticated}) => {
             });
     
             // Check the response status
+            console.log('Login response status:', response.status)
             if (response.status !== 200) throw new Error('Login Failed');
     
             const {access_token} = response.data; // Access JSON data directly
+            console.log('Received access_token:', access_token)
     
             if (access_token) {
-                onLoginSuccess(access_token);
+                localStorage.setItem('access_token', access_token)
+                console.log('Token stored in localStorage:', access_token)
+                setToken(access_token)
+                setAuthenticated(true)
+                console.log('Login successful')
             } else {
                 throw new Error('No token returned');
-            }
-    
+            }    
         } catch (err) {
             console.error(err);
-            setError('Invalid credentials');
-            alert('Invalid credentials');
+            setError( err.response?.data?.error || 'Invalid credentials');
+            
         }
     };
     

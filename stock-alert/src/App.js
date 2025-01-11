@@ -1,16 +1,16 @@
-import React, { useState } from 'react';
+import React, { useState, useContext } from 'react';
 import StockForm from './components/StockForm';
 import Login from './components/Login';
 import Register from './components/Register';
 import AlertTable from './components/AlertTable';
 import HistoryPage from './components/HistoryPage';
+import { AuthContext } from './AuthContext';
 import './App.css';
 
 
 const App = () => {
-  const [authenticated, setAuthenticated] = useState(false);
+  const {authenticated, logout} = useContext(AuthContext);
   const [showLogin, setShowLogin] = useState(true);
-  const [token, setToken] = useState('');
   const [showHistory, setShowHistory] = useState(false);
 
 
@@ -22,11 +22,6 @@ const App = () => {
     setShowLogin(false);
   };
 
-  const handleLoginSuccess = (recievedToken) => {
-    setToken(recievedToken)
-    setAuthenticated(true)
-  }
-
   return (
     <div>
       <h1 className="header">Stock Price Alert</h1>
@@ -36,7 +31,7 @@ const App = () => {
           {showLogin ? (
             <>
               {/* Pass setAuthenticated as a prop to handle login */}
-              <Login setAuthenticated={setAuthenticated} />
+              <Login />
               <div className="text-center mt-3">
                 <p className='acc-txt'>
                   Don’t have an account?{' '}
@@ -72,19 +67,20 @@ const App = () => {
             {showHistory ? (
               // Show History Page
               <>
-                <HistoryPage token={token} />
-                <button onClick={() => setShowHistory(false)}>Back</button>
+                <HistoryPage />
+                <button className="btn btn-secondary mt-3" onClick={() => setShowHistory(false)}>Back</button>
               </>
             ) : (
               // Show Alerts Page
               <>
                 <button onClick={() => setShowHistory(true)}>History</button>
-                <StockForm token={token} />
+                <button className='btn btn-secondary mt-3' onClick={logout} >Logout</button>
+                <StockForm />
                 <p className="warning">
                   Please be aware that this service only offers access to the American
                   stock exchanges.
                 </p>
-                <AlertTable token={token} />
+                <AlertTable />
               </>
             )}
           </>

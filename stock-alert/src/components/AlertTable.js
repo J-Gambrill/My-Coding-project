@@ -1,53 +1,55 @@
 // src/components/AlertTable.js
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useContext } from 'react';
+import { AuthContext } from '../AuthContext';
 
-function AlertTable({ token }) {
+function AlertTable() {
+  const { token } = useContext(AuthContext); // Access token from context
   const [alerts, setAlerts] = useState([]);
   const [error, setError] = useState(null);
 
   useEffect(() => {
-    // If there's no token, we skip fetch or handle it gracefully
+    fetchAlerts();
+  }, [token]); // Re-fetch every time token changes
+
+  const fetchAlerts = async () => {
+    // If there's no token, handle it gracefully
     if (!token) {
       setError('No valid token - please log in first.');
-      console.log({token})
+      console.log('Using token:', token);
+      setAlerts([]); // Clear previous alerts
       return;
     }
 
-    fetch('http://127.0.0.1:5000/alerts', {
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${token}`, 
-      },
-    })
-      .then(async (res) => {
-        if (!res.ok) {
-          // If 4xx or 5xx, parse error message:
-          const errorData = await res.json().catch(() => ({}));
-          throw new Error(errorData.message || 'Failed to fetch alerts');
-        }
-        return res.json();
-      })
-      .then((data) => {
-        if (Array.isArray(data)) {
-          setAlerts(data);
-        } else {
-          setError('Server returned invalid data (not an array).');
-        }
-      })
-      .catch((err) => {
-        console.error('Error fetching alerts:', err);
-        setError(err.message);
+    try {
+      const res = await fetch('http://localhost:5000/alerts', {
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
       });
-  }, [token]);
 
-  if (error) {
-    return <div style={{ color: 'red' }}>Error: {error}</div>;
-  }
+      if (!res.ok) {
+        // If 4xx or 5xx, parse error message:
+        const errorData = await res.json().catch(() => ({}));
+        throw new Error(errorData.message || 'Failed to fetch alerts');
+      }
 
-  // If not an array (or no data yet), we can show a fallback
-  if (!Array.isArray(alerts)) {
-    return <div>No alerts found or an error occurred.</div>;
-  }
+      const data = await res.json();
+
+      if (!Array.isArray(data)) {
+        throw new Error('Server returned invalid data (not an array).');
+      }
+
+      setAlerts(data); // Set the fetched alerts to state
+      setError(null); // Clear any previous errors
+    } catch (err) {
+      console.error('Error fetching alerts:', err);
+      setError(err.message);
+      setAlerts([]); // Reset alerts to an empty array upon error
+    }
+  };
+
+  if (error) return <div style={{ color: 'red' }}>Error: {error}</div>;
 
   return (
     <div>

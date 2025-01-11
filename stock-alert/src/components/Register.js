@@ -6,6 +6,7 @@ import 'bootstrap/dist/css/bootstrap.min.css';
 const Register = () => {
     const [username, setUsername] = useState('');
     const [password, setPassword] = useState('');
+    const [email, setEmail] = useState('');
     const [error, setError] = useState(null);
     const [success, setSuccess] = useState(false);
 
@@ -18,6 +19,7 @@ const Register = () => {
             await axios.post('http://localhost:5000/Register', {
                 username,
                 password,
+                email,
             });
             setSuccess(true);
         } catch (err) {
@@ -32,6 +34,7 @@ const Register = () => {
             {success && <div className="alert alert-success">Registration successful! You can now login.</div>}
             {error && <div className="alert alert-danger">{error}</div>}
             <form onSubmit={handleRegister}>
+               
                 <div className="mb-3">
                     <label className="form-label">Username</label>
                     <input
@@ -43,6 +46,19 @@ const Register = () => {
                         required
                     />
                 </div>
+
+                <div className="mb-3">  
+                    <label className="form-label">Email</label>  
+                    <input
+                        type="email"
+                        className="form-control"
+                        placeholder="Enter your email"
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                        required
+                    />
+                </div>
+
                 <div className="mb-3">
                     <label className="form-label">Password</label>
                     <input

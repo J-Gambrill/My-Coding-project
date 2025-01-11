@@ -28,6 +28,11 @@ module.exports = {
             template: './src/index.html',
         }),
     ],
+    
+    resolve: {
+        extensions:['.js','.jsx'],
+    },
+
     devServer: {
         static: './dist',
         open: true,

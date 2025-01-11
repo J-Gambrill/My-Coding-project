@@ -6,24 +6,74 @@ from stock_utils import get_stock_price
 from models import Alert, User, History
 from email_utils import send_email
 from apscheduler.schedulers.background import BackgroundScheduler
-import traceback
 from flask_sqlalchemy import SQLAlchemy
 from werkzeug.security import generate_password_hash, check_password_hash
 from flask_jwt_extended import JWTManager, create_access_token, jwt_required, get_jwt_identity
 from datetime import datetime, timezone
+import logging
+import secrets
+from flask_migrate import Migrate
+from dotenv import load_dotenv
 
+load_dotenv()
 
 app = Flask(__name__)
-CORS(app, supports_credentials=True) # Enables (Cross-Origin Resource Sharing) which supoosedly just means frontend-backend communication
+
+allowed_origins = [  # this will need to include a frontend domain should you have one
+    'http://localhost:8080',
+    'http://localhost:5000'
+]
+
+CORS(app, resources={r"/*": {"origins": allowed_origins}}, supports_credentials=True) # Enables (Cross-Origin Resource Sharing) which supoosedly just means frontend-backend communication
 
 BASE_DIR = os.path.abspath(os.path.dirname(__file__))
 db_path = os.path.join(BASE_DIR, "alerts.db")
 
-app.config['JWT_SECRET_KEY'] = 'your-secret-key'
+JWT_key = os.getenv('JWT_SECRET_KEY')  # THIS IS AN ENVIRONMENT VARIABLE YOU WILL HAVE TO MAKE YOUR OWN (current expires 2030)
+if not JWT_key:
+    raise ValueError("No JWT key set for flask application")
+
+app.config['JWT_SECRET_KEY'] = JWT_key 
 app.config['SQLALCHEMY_DATABASE_URI'] = f"sqlite:///{db_path}"
 
 db = SQLAlchemy(app)
+migrate = Migrate(app,db)
 jwt = JWTManager(app)
+
+logging.basicConfig(
+    filename='flask.log',
+    level=logging.INFO,  # Set to INFO level; change to DEBUG if needed
+    format='%(asctime)s %(levelname)s: %(message)s [in %(pathname)s:%(lineno)d]'
+)
+
+# JWT Error Handlers
+@jwt.unauthorized_loader
+def unauthorized_response(callback):
+    return jsonify({
+        'error': 'Authorization required',
+        'description': callback
+    }), 401  
+
+@jwt.invalid_token_loader
+def invalid_token_response(callback):
+    return jsonify({
+        'error': 'Invalid token',
+        'description': callback
+    }), 422  
+
+@jwt.expired_token_loader
+def expired_token_response(callback, payload):
+    return jsonify({
+        'error': 'Token expired',
+        'description': callback
+    }), 401
+
+@jwt.revoked_token_loader
+def revoked_token_response(callback, payload):
+    return jsonify({
+        'error': 'Token revoked',
+        'description': callback
+    }), 401
 
 # Auth Routes
 
@@ -32,20 +82,26 @@ def Register():
     data = request.get_json()
     username = data.get('username')
     password = data.get('password')
+    email = data.get('email')
 
-    if not username or not password:
-        return jsonify({'error': 'Username and password are required'}), 400
+    if not username or not password or not email:
+        return jsonify({'error': 'Username, email and password are required'}), 400
 
     # Check if the user already exists
     existing_user = db.session.query(User).filter_by(username=username).first()
     if existing_user:
         return jsonify({'error': 'Username already exists'}), 409
+    
+    # Check if the email is already registered
+    existing_email = db.session.query(User).filter_by(email=email).first()
+    if existing_email:
+        return jsonify({'error': 'Email already registered'}), 409
 
     # Hash the password & create a new user
     hashed_password = generate_password_hash(password)
-    new_user = User(username=username, password=hashed_password)
+    new_user = User(username=username, password=hashed_password, email=email)
     db.session.add(new_user)
-    db.session.commit()  # <-- be sure to call commit()
+    db.session.commit()  
 
     return jsonify({'message': 'User registered successfully'}), 201
 
@@ -80,13 +136,18 @@ def set_alert():
     try:
 
         current_user_id = get_jwt_identity()
+       
+        user = db.session.query(User).filter_by(id=current_user_id).first() 
+        if not user:
+            return jsonify({'message': 'User not found'}), 404 
+       
         data = request.json
-        print("Request data:", data)
+        logging.info("Request data: {data}")
         
         symbol = data.get('symbol')
         high_price = data.get('high_price')
         low_price = data.get('low_price')
-        email = data.get('email')
+        email = user.email
 
         if not symbol:
             return jsonify({'message': 'Invalid data: Stock symbol required'}), 400
@@ -104,7 +165,7 @@ def set_alert():
         if high_price is not None:
             high_alert = Alert(
                 symbol=symbol,
-                price=float(high_price),
+                price=high_price,
                 email=email,
                 price_type='high',
                 user_id=current_user_id
@@ -114,7 +175,7 @@ def set_alert():
         if low_price is not None:
             low_alert = Alert(
                 symbol=symbol,
-                price=float(low_price),
+                price=low_price,
                 email=email,
                 price_type='low',
                 user_id=current_user_id
@@ -122,12 +183,12 @@ def set_alert():
             db.session.add(low_alert)
 
         db.session.commit()
-        print(f"Received alert: Symbol={symbol}, High Price={high_price}, "f"Low Price={low_price}, Email={email}")
+        logging.info(f"Received alert: Symbol={symbol}, High Price={high_price}, "f"Low Price={low_price}, Email={email}")
 
         return jsonify({'message': 'Alert set successfully!'}), 200
         
     except Exception as e:
-        print("Error processing request:", traceback.format_exc())
+        logging.error("Error processing request:", exc_info=True)
         return jsonify({'message': 'An internal error occurred.'}), 500
     
     
@@ -140,7 +201,7 @@ def get_price(symbol):
             return jsonify({'symbol': symbol, 'price': stock_price}), 200
         return jsonify({'message': 'Stock price not found'}), 404
     except Exception as e:
-        print("Error fetching stock price:", traceback.format_exc())
+        logging.error("Error fetching stock price:", exc_info=True)
         return jsonify({'message': 'An error occurred while fetching the price.'}), 500
     
 # get all alerts for the logged in user
@@ -149,8 +210,8 @@ def get_price(symbol):
 @jwt_required()
 def get_alerts():
     try:
-        print(f"JWT Identity: {get_jwt_identity()}")  # Debugging line
         current_user_id = get_jwt_identity()
+        logging.info(f"JWT Identity: {current_user_id}")  
         user_alerts = db.session.query(Alert).filter_by(user_id=current_user_id).all()
 
         alerts_data = []
@@ -166,7 +227,7 @@ def get_alerts():
         
         return jsonify(alerts_data), 200
     except Exception as e:
-        print("Error fetching user alerts:", traceback.format_exc())
+        logging.error("Error fetching user alerts:", exc_info=True)
         return jsonify({'message': 'An error occured while fetching alerts.'}), 500
     
 # Delete an alert (manually - used on site)
@@ -196,7 +257,7 @@ def delete_alert(alert_id):
         db.session.commit()
         return jsonify({'message': 'Alert deleted successfully'}), 200
     except Exception as e:
-        print("Error deleting alert:", traceback.format_exc())
+        logging.error("Error deleting alert:", exc_info=True)
         return jsonify({'message': 'An error occured while deleting the alert'}), 500
     
 # edit an existing alert (manually - used on site)
@@ -230,7 +291,7 @@ def edit_alert(alert_id):
         db.session.commit()
         return jsonify({'message':'Alert updated successfully'}), 200
     except Exception as e:
-        print ('Error editing alert:', traceback.format_exc()) 
+        logging.error('Error editing alert:', exc_info=True) 
         return jsonify({'message': 'An error occurred while editing the alert'}), 500
     
 
@@ -270,8 +331,8 @@ def get_history():
 
         return jsonify(history_data), 200
     except Exception as e:
-        print("Error fetching history:", traceback.format_exc())
-        return jsonify({'message:' 'An error occured while fetching history.'}), 500
+        logging.error("Error fetching history:", exc_info=True)
+        return jsonify({'message': 'An error occured while fetching history.'}), 500
 
 
 # Initialise a background scheduler (apscheduler)
@@ -282,17 +343,17 @@ scheduler.start()
 def check_alerts():
       with app.app_context():
         try:
-            print('Scheduler running: checking alerts..')
+            logging.info('Scheduler running: checking alerts..')
             alerts = db.session.query(Alert).all()
 
             for alert in alerts:
                 try:
                     current_price = get_stock_price(alert.symbol)
-                    print(f"Checking alert for {alert.symbol}. Current price: {current_price}, Alert price: {alert.price}, Price type = {alert.price_type}")
+                    logging.info(f"Checking alert for {alert.symbol}. Current price: {current_price}, Alert price: {alert.price}, Price type = {alert.price_type}")
 
 
                     if current_price is None:
-                        print(f'Failed to fetch price for {alert.symbol}. Skipping.')
+                        logging.warning(f'Failed to fetch price for {alert.symbol}. Skipping.')
                         continue
 
                     current_price = float(current_price)
@@ -300,11 +361,11 @@ def check_alerts():
 
                  # --- Only send email if the condition is true ---
                     if alert.price_type == 'low' and current_price <= alert_price:
-                        print(f"Triggering LOW alert for {alert.symbol} "
+                        logging.info(f"Triggering LOW alert for {alert.symbol} "
                             f"(current: {current_price}, alert: {alert_price})")
                         if alert.email:
                             send_email(alert.email, alert.symbol, current_price, alert.price_type, alert.price)
-                            print('Email sent successfully')
+                            logging.info('Email sent successfully')
                             
                         history_entry = History(
                             symbol=alert.symbol,
@@ -317,14 +378,14 @@ def check_alerts():
 
                         db.session.add(history_entry)
                         db.session.delete(alert)  # remove it after sending
-                        print(f"Alert for {alert.symbol} removed successfully.")
+                        logging.info(f"Alert for {alert.symbol} removed successfully.")
 
                     elif alert.price_type == 'high' and current_price >= alert_price:
-                        print(f"Triggering HIGH alert for {alert.symbol} "
+                        logging.info(f"Triggering HIGH alert for {alert.symbol} "
                             f"(current: {current_price}, alert: {alert_price})")
                         if alert.email:
                             send_email(alert.email, alert.symbol, current_price, alert.price_type, alert.price)
-                            print('Email sent successfully')
+                            logging.info('Email sent successfully')
                         
                         history_entry = History(
                             symbol=alert.symbol,
@@ -338,19 +399,19 @@ def check_alerts():
                         db.session.add(history_entry)
                         
                         db.session.delete(alert)
-                        print(f"Alert for {alert.symbol} removed successfully.")
+                        logging.info(f"Alert for {alert.symbol} removed successfully.")
 
                     # If neither condition is met, it does nothing – the alert remains in the DB until it eventually triggers or is manually removed.
 
                 except Exception as alert_error:
-                    print(f'Error processing alert for {alert.symbol}: Error: {alert_error}')
+                    logging.error(f'Error processing alert for {alert.symbol}: Error: {alert_error}')
 
             db.session.commit()
-            print('Finished Checking alerts')
+            logging.info('Finished Checking alerts')
         except Exception as e:
-            print("Error in check_alerts:", traceback.format_exc())
+            logging.errorf('Error processing alert for {alert.symbol}: Error: {alert_error}')
 
-# this line should ensure the check runs every 5 minutes -->
+
 scheduler.add_job(check_alerts, 'interval', minutes=1) # note with 25 reqs per day change your mins to 57.6 for a full day of checks
 
 # Main Entry Point
@@ -360,7 +421,8 @@ if __name__ == '__main__':
     with app.app_context():
         db.create_all()
     
-    app.run(debug=True)
+    app.run(debug=True, port=5000)
+
 
 
 

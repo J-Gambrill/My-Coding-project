@@ -6,7 +6,7 @@ export const AuthContext = createContext()
 
 export const AuthProvider = ({children}) => {
     const [token, setToken] = useState(null)
-    const [authenticated, setAuthenticated] = useState(False)
+    const [authenticated, setAuthenticated] = useState(false)
 
     useEffect(() => {
         //checks if a token currently exists on app load
@@ -14,13 +14,15 @@ export const AuthProvider = ({children}) => {
         if (storedToken) {
             setToken(storedToken)
             setAuthenticated(true)
+            console.log('AuthContext initialized with token.')
         }
     }, [])
 
     const logout = () => {
         localStorage.removeItem('access_token')
-        setToken=null
+        setToken(null)
         setAuthenticated(false)
+        console.log('User logged out.')
     }
 
  //what is going on below?
@@ -30,7 +32,7 @@ export const AuthProvider = ({children}) => {
  // children is a special prop that represents all components held inside AuthProvider. (i will render all the components inside auth provider see AlertTable)
 
     return (
-        <AuthContext.Provider value={{ token, setToken, authenticated, setAuthenticated, logout}}>
+        <AuthContext.Provider value={{ token, setToken, authenticated, setAuthenticated, logout }}>
             {children}
         </AuthContext.Provider>
     )
