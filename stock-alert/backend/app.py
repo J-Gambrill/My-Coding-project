@@ -17,7 +17,9 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
+
 app = Flask(__name__)
+jwt = JWTManager(app)
 
 allowed_origins = [  # this will need to include a frontend domain should you have one
     'http://localhost:8080',
@@ -30,6 +32,8 @@ BASE_DIR = os.path.abspath(os.path.dirname(__file__))
 db_path = os.path.join(BASE_DIR, "alerts.db")
 
 JWT_key = os.getenv('JWT_SECRET_KEY')  # THIS IS AN ENVIRONMENT VARIABLE YOU WILL HAVE TO MAKE YOUR OWN (current expires 2030)
+print(f"secret={JWT_key}")
+logging.info(f"secret={JWT_key}")
 if not JWT_key:
     raise ValueError("No JWT key set for flask application")
 
@@ -38,7 +42,6 @@ app.config['SQLALCHEMY_DATABASE_URI'] = f"sqlite:///{db_path}"
 
 db = SQLAlchemy(app)
 migrate = Migrate(app,db)
-jwt = JWTManager(app)
 
 logging.basicConfig(
     filename='flask.log',
@@ -112,6 +115,8 @@ def Login():
     username = data.get('username')
     password = data.get('password')
 
+    logging.info(f"login {username}")
+
     if not username or not password:
         return jsonify({'error': 'Username and password are required'}), 400
 
@@ -124,6 +129,14 @@ def Login():
     return jsonify({'access_token': access_token}), 200
 
 # Alert & Stock Routes
+
+@app.route('/test', methods=['GET'])
+@jwt_required()
+def test():
+    print("test")
+    logging.info("test")
+    return "hi", 200
+
 
 @app.route('/')
 def home():
@@ -209,6 +222,8 @@ def get_price(symbol):
 @app.route('/alerts', methods=['GET'])
 @jwt_required()
 def get_alerts():
+    logging.info("Alert Table Starting")
+    print("Print")
     try:
         current_user_id = get_jwt_identity()
         logging.info(f"JWT Identity: {current_user_id}")  

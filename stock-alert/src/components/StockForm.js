@@ -6,7 +6,6 @@ const StockForm = () => {
     const [symbol, setSymbol] = useState('');
     const [highPrice, setHighPrice] = useState('');
     const [lowPrice, setLowPrice] = useState('');
-    const [email, setEmail] = useState('');
     const [message, setMessage] = useState(''); //without this the error message will not work
 
     const handleSubmit = async (e) => {
@@ -42,7 +41,6 @@ const StockForm = () => {
                 symbol: trimmedSymbol, // Use trimmed symbol
                 high_price: highPrice || null,
                 low_price: lowPrice || null,
-                email,
             });
 
             // Success response
@@ -50,7 +48,6 @@ const StockForm = () => {
             setSymbol('');
             setHighPrice('');
             setLowPrice('');
-            setEmail('');
         } catch (error) {
             // Handle error response
             console.error('Error:', error);
@@ -102,16 +99,6 @@ const StockForm = () => {
                 />
             </div>
 
-            <div className='mb-3'> 
-                <label htmlFor="email">Email:</label>
-                <input
-                    type="email"
-                    className="form-control"
-                    id="email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                />
-            </div>
             <button type="submit" className="btn btn-primary" >Set Alert</button>
             {message && <p className="alert alert-info">{message}</p>}
         </form>
