@@ -1,0 +1,16 @@
+.acc-txt{
+    display: flex;
+    justify-content: center;
+    flex-direction: row;
+    margin: 0 auto;
+    max-width: 19rem;
+    padding: 0.2rem;
+    border-style: solid;
+    border-width: 0.15rem;
+    border-radius: 10px;
+    border-color: darkgrey;
+}
+
+.btn-link{
+    margin-top: -0.5rem;
+}

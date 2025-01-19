@@ -1,0 +1,56 @@
+.header {
+    display: flex;
+    justify-content: center;
+    margin: 1rem;
+}
+
+.form {
+    display: flex;
+    justify-content: center;
+    flex-direction: column;
+    max-width: 30rem;
+    margin: 1rem auto; /* This should center the form */
+    padding: 1rem;
+    border: solid;
+    border-width: 0.2rem;
+    border-color: black;
+    border-radius: 30px;
+}
+
+.btn-primary{
+    margin: 0 auto;
+    border-radius: 10px !important; /* The original code has a border radius but i wanted a bigger one so i used !important to overide it */
+} /* this adds code to an existing CSS bootsrap button without changing the original code*/
+
+.input-group-text{
+    display: flex;
+    z-index: 100;
+    justify-content: right;
+    max-width: 10px;
+    margin: 0 0 -2.4rem 0 ;
+    background-color: transparent !important;
+    border-color: transparent !important;
+    
+} /* this takes a precoded boostrap and aligns it to overlap the input box and moves it so the £ sign appears slightly infront of any text*/
+
+.alert-info{
+    display: flex;
+    margin: 0.5rem auto;
+    justify-content: center;
+    padding: 0.2rem !important;
+    max-width: 22rem;
+    font-weight: 600;
+}
+
+.warning{
+    display: flex;
+    justify-content: center;
+    border-style: solid;
+    border-radius: 30px;
+    border-width: 2px;
+    border-color: #e33310;
+    max-width: 40rem;
+    padding: 0.1rem;
+    margin: 0.5rem auto;
+
+}
