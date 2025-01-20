@@ -16,6 +16,7 @@ function Login({setAuthenticated}) {
         setError(null)
     } catch (err) {
         setError('Invalid username or password. Please try again.')
+        setAuthenticated(false)
     }
   };
 

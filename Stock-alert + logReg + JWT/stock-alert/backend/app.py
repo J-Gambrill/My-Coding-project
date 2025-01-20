@@ -1,5 +1,5 @@
 
-
+# should gmail stop working amazon offers 62,000 free emails per month - best free solution
 #this represents a basic flask server
 import os
 import jwt
@@ -419,7 +419,7 @@ if __name__ == '__main__':
     with app.app_context():
         db.create_all()
     
-    app.run(debug=True)
+    app.run(debug=True, use_reloader=False)
 
 
 

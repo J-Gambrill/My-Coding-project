@@ -8,16 +8,17 @@ async function login(username, password) {
         credentials: 'include' // this ensures cookies are sent and retrieved
       });
       const data = await response.json();
-      if (response.ok) { 
-        console.log('Logged in successfully!');
-      } else {
-        console.error(data.error);
+      if (!response.ok) {
+        throw new Error(data.error || 'Invalid username or password');
       }
+  
+      console.log('Logged in successfully!');
+      return data;
     } catch (error) {
       console.error('Error logging in:', error);
+      throw error; 
     }
   }
-  
   async function getProtectedData() {
     try {
       const response = await fetch('http://localhost:5000/protected', {
