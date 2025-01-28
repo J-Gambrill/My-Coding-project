@@ -1,3 +1,62 @@
+.help-button {
+    position: fixed;
+    top: 15px;
+    right: 15px;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: #007bff;
+    color: #fff;
+    border: none;
+    font-size: 1.2rem;
+    cursor: pointer;
+    z-index: 1001; 
+  }
+
+.blur {
+    filter: blur(4px);
+    pointer-events: none; /* optionally prevent interaction behind overlay */
+}
+
+.help-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0,0,0,0.5);
+    z-index: 1000;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.help-content {
+    background: #fff;
+    padding: 20px;
+    border-radius: 8px;
+    max-width: 400px;
+    text-align: center;
+}
+
+.close-button{
+    border-radius: 10px;
+}
+
+.logout-button {
+    position: fixed;
+    top: 15px;
+    left: 15px;
+    border: none;
+    background-color: #dc3545; 
+    color: #fff;
+    padding: 8px 12px;
+    border-radius: 4px;
+    font-size: 1rem;
+    cursor: pointer;
+    z-index: 1001;
+  }
+
 .acc-txt{
     display: flex;
     justify-content: center;
@@ -9,6 +68,11 @@
     border-width: 0.15rem;
     border-radius: 10px;
     border-color: darkgrey;
+}
+
+.mb-3{
+    border-width: 0.18rem;
+    border-color: rgb(71, 82, 95);
 }
 
 .btn-link{

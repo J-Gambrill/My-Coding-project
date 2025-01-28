@@ -20,6 +20,8 @@
 .btn-primary{
     margin: 0 auto;
     border-radius: 10px !important; /* The original code has a border radius but i wanted a bigger one so i used !important to overide it */
+    border-color: rgb(60, 82, 98) !important;
+    border-width: 0.18rem !important
 } /* this adds code to an existing CSS bootsrap button without changing the original code*/
 
 .input-group-text{

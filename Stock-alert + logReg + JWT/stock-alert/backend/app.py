@@ -143,8 +143,7 @@ def Login():
     )
     return response, 200
 
-
- #  JSON Response:
+    #  JSON Response:
 
  #   return jsonify({
  #           "access_token": access_token,
@@ -153,6 +152,17 @@ def Login():
  #   else:
  #       return jsonify({"error": "Invalid credentials"}), 401
 
+
+# logout route
+
+@app.route("/logout", methods=["POST"])
+def logout():
+    response = jsonify({"message": "Logged out successfully"})
+    # Clear the cookies by setting them to empty and expired
+    response.set_cookie("access_token", "", expires=0)
+    response.set_cookie("refresh_token", "", expires=0)
+    return response, 200
+ 
 
 # Protected & Refresh Routes - JWT related
 
@@ -212,7 +222,7 @@ def set_alert():
 
         token = request.cookies.get("access_token")
         if not token:
-            return jsonify({'message': 'Unauthorized. Missing token.'}), 401
+            return jsonify({'message': 'Unauthorised. Missing token.'}), 401
         
         try:
             decoded = jwt.decode(token, app.config['SECRET_KEY'], algorithms=["HS256"])
@@ -279,7 +289,7 @@ def get_price(symbol):
 def user_alerts():
     token = request.cookies.get("access_token")
     if not token:
-        return jsonify({'error': 'Unauthorized. Missing token.'}), 401
+        return jsonify({'error': 'Unauthorised. Missing token.'}), 401
     
     try:
         decoded = jwt.decode(token, app.config['SECRET_KEY'], algorithms=['HS256'])
@@ -298,6 +308,34 @@ def user_alerts():
     except Exception as e:
         print("Error fetching alerts:", traceback.format_exc())
         return jsonify({'error': 'Internal server error'}), 500
+    
+# deletes user alerts
+
+@app.route('/delete_user_alerts', methods=['POST'])
+def delete_user_alerts():  # deletes alerts with matching id's to those selected
+    try:
+        token = request.cookies.get("access_token")
+        if not token:
+            return jsonify({'error': 'Unauthorised. Missing token.'}), 401
+
+        decoded = jwt.decode(token, app.config['SECRET_KEY'], algorithms=['HS256'])
+        user_id = decoded["data"]["user_id"]
+
+        data = request.get_json()
+        alert_ids = data.get("alert_ids", [])
+
+        Alert.query.filter(Alert.id.in_(alert_ids), Alert.user_id == user_id).delete(synchronize_session=False)
+        db.session.commit()
+
+        return jsonify({"message": "Alerts deleted successfully."}), 200
+
+    except jwt.ExpiredSignatureError:
+        return jsonify({'error': 'Token expired'}), 401
+    except jwt.InvalidTokenError:
+        return jsonify({'error': 'Invalid Token'}), 401
+    except Exception as e:
+        print("Error deleting alerts:", traceback.format_exc())
+        return jsonify({'error': 'Internal server error'}), 500
 
 # app route to display user history
 
@@ -305,13 +343,19 @@ def user_alerts():
 def alert_history():
     token = request.cookies.get("access_token")
     if not token:
-        return jsonify({'error': 'Unauthorized. Missing token.'}), 401
+        return jsonify({'error': 'Unauthorised. Missing token.'}), 401
     
     try:
         decoded = jwt.decode(token, app.config['SECRET_KEY'], algorithms=['HS256'])
         user_id = decoded["data"]["user_id"]
 
-        history_alerts = AlertHistory.query.filter_by(user_id=user_id).order_by(AlertHistory.activated_at.desc()).all()
+        page = request.args.get('page', 1, type=int)
+        per_page = request.args.get('per_page', 10, type=int)
+
+        query = AlertHistory.query.filter_by(user_id=user_id).order_by(AlertHistory.activated_at.desc())
+        pagination = query.paginate(page=page, per_page=per_page, error_out=False)
+        history_alerts = pagination.items
+
         history_data = [
             {
                 "id": alert.id,
@@ -322,7 +366,10 @@ def alert_history():
             }
             for alert in history_alerts
         ]
-        return jsonify({'history_alerts': history_data}), 200
+        return jsonify({
+            'history_alerts': history_data,
+            'pages': pagination.pages
+        }), 200
     except jwt.ExpiredSignatureError:
         return jsonify({"error": "Token Expired"}), 401
     except jwt.InvalidTokenError:
@@ -331,6 +378,82 @@ def alert_history():
         print("Error fetching alert history:", traceback.format_exc())
         return jsonify({'error': 'Internal server error'}), 500
     
+# deletes history alerts
+
+@app.route('/delete_history_alerts', methods=['POST'])
+def delete_history_alerts(): # deletes selected history alerts by matching id and user_id
+    try:
+        token = request.cookies.get("access_token")
+        if not token:
+            return jsonify({'error': 'Unorthorised. Missing token.'}), 401
+        
+        decoded = jwt.decode(token, app.config['SECRET_KEY'], algorithms=['HS256'])
+        user_id = decoded["data"]["user_id"]
+
+        data = request.get_json()
+        history_ids = data.get("history_ids", [])
+
+        AlertHistory.query.filter(AlertHistory.id.in_(history_ids), AlertHistory.user_id == user_id).delete(synchronize_session=False)
+        db.session.commit()
+
+        return jsonify({'message': "History alerts deleted successfully"}), 200
+    
+    except jwt.ExpiredSignatureError:
+        return jsonify({'error': 'Token expired'}), 401
+    except jwt.InvalidTokenError:
+        return jsonify({'error': 'Invalid token'}), 401
+    except Exception as e:
+        print("Error deleting history alerts:", traceback.format_exc())
+        return jsonify({'error': 'Internal server error'}), 500
+    
+
+#updates alert table (if edited) (expects a json of the row)
+@app.route('/update_alert', methods=['PUT'])
+def update_alert():
+    try:
+        token = request.cookies.get("access_token")
+        if not token:
+            return jsonify({'error': 'Unauthorised. Missing token.'}),401
+    
+        decoded = jwt.decode(token, app.config['SECRET_KEY'], algorithms=['HS256'])
+        user_id = decoded["data"]["user_id"]
+
+        data = request.get_json()
+        alert_id = data.get("id")
+        new_symbol = data.get("symbol")
+        new_price = data.get("price")
+        new_price_type = data.get("price_type")
+
+        if not alert_id:
+            return jsonify({'error': 'Missing alert ID'}), 400
+        
+        # Update if alert belongs to current user
+        alert = Alert.query.filter_by(id=alert_id, user_id=user_id).first()
+        if not alert:
+            return jsonify({'error': 'Alert not found or unauthorised'}), 404
+        
+        # updates any fields provided
+        if new_symbol is not None:
+            alert.symbol = new_symbol
+        if new_price is not None:
+            try:
+                alert.price = float(new_price)
+            except ValueError:
+                return jsonify({'error': 'price must be numeric'}), 400
+        if new_price_type in ["high", "low"]:
+            alert.price_type = new_price_type
+
+        db.session.commit()
+
+        return jsonify({'message': 'Alert updated successfully'}), 200
+    
+    except jwt.ExpiredSignatureError:
+        return jsonify({'error': 'Token expired'}), 401
+    except jwt.InvalidTokenError:
+        return jsonify({'error': 'Invalid token'}), 401
+    except Exception as e:
+        print("Error updating alert:", traceback.format_exc())
+        return jsonify({'error': 'Internal server error'}), 500
 
 # Initialise a background scheduler (apscheduler)
 
